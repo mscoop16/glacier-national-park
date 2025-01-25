@@ -3,6 +3,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.models import Variable
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
 from datetime import datetime, timedelta
 from dateutil import parser
@@ -125,18 +126,43 @@ def transform_data(**kwargs):
         }
 
         df = pd.DataFrame([flight_info])
-        temp_file = '/tmp/transformed_flights.csv'
-        df.to_csv(temp_file, index=False)
-        return temp_file
+        return df
 
     except Exception as e:
         print(f'Error during transformation: {e}')
         raise
 
 def load_data_to_snowflake(**kwargs):
-    pass
-    # try:
-    #     temp_file = kwargs['ti'].xcom_pull(task_ids='transform_data')
+    try:
+        ti = kwargs['ti']
+        df = ti.xcom_pull(task_ids='transform_data')
+
+        if df is None:
+            raise ValueError('No data returned from transform_data task')
+        
+        flight_info = df[0]
+
+        sql = f"""
+        INSERT INTO {SNOWFLAKE_TABLE} (token, total_price, num_legs, departure, arrival, legs, carriers, flight_time)
+        VALUES (
+            '{flight_info['token']}',
+            {flight_info['total_price']},
+            {flight_info['num_legs']},
+            '{flight_info['departure']}',
+            '{flight_info['arrival']}',
+            ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in flight_info['legs']])}),
+            ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in flight_info['carriers']])}),
+            {flight_info['flight_time']}
+        );
+        """
+
+        snowflake_hook = SnowflakeHook(snowflake_conn_id="snowflake_default")
+        snowflake_hook.run(sql)
+
+        print(f"Data successfully loaded into Snowflake table: {SNOWFLAKE_TABLE}")
+    except Exception as e:
+        print(f"Error loading data into Snowflake: {e}")
+        raise
 
 default_args = {
     'owner': 'mscoop',
@@ -160,4 +186,16 @@ with DAG(
         provide_context=True
     )
 
-    fetch_data_task >> upload_data_task
+    transform_data_task = PythonOperator(
+        task_id='transform_data',
+        python_callable=transform_data,
+        provide_context=True
+    )
+
+    upload_transformed_data_task = PythonOperator(
+        task_id='upload_to_snowflake',
+        python_callable=load_data_to_snowflake,
+        provide_context=True
+    )
+
+    fetch_data_task >> upload_data_task >> transform_data_task >> upload_transformed_data_task
