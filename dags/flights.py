@@ -7,6 +7,7 @@ from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
 from datetime import datetime, timedelta
 from dateutil import parser
+import logging
 import pandas as pd
 import requests
 import json
@@ -23,7 +24,7 @@ API_URL = "https://booking-com15.p.rapidapi.com/api/v1/flights/searchFlights"
 API_KEY = Variable.get('booking-api-key')
 API_QUERY = {"fromId":"PHL.AIRPORT",
                    "toId":"MSO.AIRPORT",
-                   "departDate":"2025-01-24",
+                   "departDate": (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d'),
                    "pageNo":"1",
                    "adults":"1",
                    "sort":"BEST",
@@ -126,7 +127,12 @@ def transform_data(**kwargs):
         }
 
         df = pd.DataFrame([flight_info])
-        return df
+        df['legs'] = df['legs'].apply(json.dumps)
+        df['carriers'] = df['carriers'].apply(json.dumps)
+        temp_file = '/tmp/transformed_flight_data.csv'
+        df.to_csv(temp_file, index=False)
+
+        return temp_file
 
     except Exception as e:
         print(f'Error during transformation: {e}')
@@ -135,38 +141,49 @@ def transform_data(**kwargs):
 def load_data_to_snowflake(**kwargs):
     try:
         ti = kwargs['ti']
-        df = ti.xcom_pull(task_ids='transform_data')
+        temp_file = ti.xcom_pull(task_ids='transform_data')
 
-        if df is None:
-            raise ValueError('No data returned from transform_data task')
+        if temp_file is None:
+            raise ValueError('No file returned from transform_data task')
+
+        df = pd.read_csv(temp_file)
         
-        flight_info = df[0]
+        flight_info = df.iloc[0]
+
+        legs = json.loads(flight_info['legs'])
+        logging.info(f'Legs: {legs}')
+        carriers = json.loads(flight_info['carriers'])
 
         sql = f"""
         INSERT INTO {SNOWFLAKE_TABLE} (token, total_price, num_legs, departure, arrival, legs, carriers, flight_time)
-        VALUES (
+        SELECT
             '{flight_info['token']}',
             {flight_info['total_price']},
             {flight_info['num_legs']},
             '{flight_info['departure']}',
             '{flight_info['arrival']}',
-            ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in flight_info['legs']])}),
-            ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in flight_info['carriers']])}),
-            {flight_info['flight_time']}
-        );
+            ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in legs])}),
+            ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in carriers])}),
+            {flight_info['flight_time']};
         """
 
-        snowflake_hook = SnowflakeHook(snowflake_conn_id="snowflake_default")
+        snowflake_hook = SnowflakeHook(snowflake_conn_id="snowflake_flight")
         snowflake_hook.run(sql)
 
         print(f"Data successfully loaded into Snowflake table: {SNOWFLAKE_TABLE}")
+
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+            print(f'Temporary file deleted: {temp_file}')
     except Exception as e:
         print(f"Error loading data into Snowflake: {e}")
         raise
 
 default_args = {
     'owner': 'mscoop',
-    'retries' : 0
+    'retries' : 0,
+    'catchup' : False,
+    'schedule' : None
 }
 with DAG(
     'flight_flow',
