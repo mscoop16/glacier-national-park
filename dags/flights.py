@@ -22,9 +22,11 @@ SNOWFLAKE_TABLE = 'FLIGHT_DATA'
 
 API_URL = "https://booking-com15.p.rapidapi.com/api/v1/flights/searchFlights"
 API_KEY = Variable.get('booking-api-key')
+RUN_DATE = datetime.now().strftime('%Y-%m-%d')
+FLIGHT_DATE = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')
 API_QUERY = {"fromId":"PHL.AIRPORT",
                    "toId":"MSO.AIRPORT",
-                   "departDate": (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d'),
+                   "departDate": FLIGHT_DATE,
                    "pageNo":"1",
                    "adults":"1",
                    "sort":"BEST",
@@ -155,7 +157,7 @@ def load_data_to_snowflake(**kwargs):
         carriers = json.loads(flight_info['carriers'])
 
         sql = f"""
-        INSERT INTO {SNOWFLAKE_TABLE} (token, total_price, num_legs, departure, arrival, legs, carriers, flight_time)
+        INSERT INTO {SNOWFLAKE_TABLE} (token, total_price, num_legs, departure, arrival, legs, carriers, flight_time, flight_date, run_date)
         SELECT
             '{flight_info['token']}',
             {flight_info['total_price']},
@@ -164,7 +166,9 @@ def load_data_to_snowflake(**kwargs):
             '{flight_info['arrival']}',
             ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in legs])}),
             ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in carriers])}),
-            {flight_info['flight_time']};
+            {flight_info['flight_time']},
+            '{FLIGHT_DATE}',
+            '{RUN_DATE}';
         """
 
         snowflake_hook = SnowflakeHook(snowflake_conn_id="snowflake_flight")
