@@ -4,6 +4,7 @@ from airflow.models import Variable
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
+from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator
 
 from datetime import datetime, timedelta
 from dateutil import parser
@@ -185,12 +186,13 @@ def load_data_to_snowflake(**kwargs):
 
 default_args = {
     'owner': 'mscoop',
-    'retries' : 0,
-    'catchup' : False,
-    'schedule' : None
+    'retries' : 1,
+    'retry_delay': timedelta(minutes=5)
 }
 with DAG(
     'flight_flow',
+    schedule_interval=None,
+    description = 'A DAG that performs ETL on flight data for a trip to Glacier National Park',
     default_args=default_args,
     start_date=datetime(2025, 1, 22),
     catchup=False
@@ -217,6 +219,12 @@ with DAG(
         task_id='upload_to_snowflake',
         python_callable=load_data_to_snowflake,
         provide_context=True
+    )
+
+    flight_column_checks = SQLColumnCheckOperator(
+        task_id ='flight_column_checks',
+        table=SNOWFLAKE_TABLE,
+        column_mapping={"token": {"null_check": {"equal_to": 0}}}
     )
 
     fetch_data_task >> upload_data_task >> transform_data_task >> upload_transformed_data_task
