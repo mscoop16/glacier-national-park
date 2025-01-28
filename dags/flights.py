@@ -1,10 +1,14 @@
 from airflow import DAG
+from airflow.models.baseoperator import chain
+from airflow.operators.empty import EmptyOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.models import Variable
 
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator
+
+from airflow.utils.task_group import TaskGroup
 
 from datetime import datetime, timedelta
 from dateutil import parser
@@ -19,6 +23,7 @@ S3_KEY_TEMPLATE = "raw/flights/{{ ds }}/phl_to_mso.json"
 BUCKET = 'glacier-national-park'
 TEMP_FILE = '/tmp/phl_to_mso.json'
 
+SNOWFLAKE_CONN_ID = "snowflake_flight"
 SNOWFLAKE_TABLE = 'FLIGHT_DATA'
 
 API_URL = "https://booking-com15.p.rapidapi.com/api/v1/flights/searchFlights"
@@ -169,10 +174,15 @@ def load_data_to_snowflake(**kwargs):
             ARRAY_CONSTRUCT({", ".join([f"'{x}'" for x in carriers])}),
             {flight_info['flight_time']},
             '{FLIGHT_DATE}',
-            '{RUN_DATE}';
+            '{RUN_DATE}'
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM {SNOWFLAKE_TABLE}
+            WHERE token = '{flight_info['token']}'
+        );
         """
 
-        snowflake_hook = SnowflakeHook(snowflake_conn_id="snowflake_flight")
+        snowflake_hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONN_ID)
         snowflake_hook.run(sql)
 
         print(f"Data successfully loaded into Snowflake table: {SNOWFLAKE_TABLE}")
@@ -221,10 +231,27 @@ with DAG(
         provide_context=True
     )
 
-    flight_column_checks = SQLColumnCheckOperator(
+    with TaskGroup(
+        group_id='quality_check_group_flight',
+        default_args={
+            'conn_id' : SNOWFLAKE_CONN_ID
+        }
+    ) as quality_check_group_flight:
+        flight_column_checks = SQLColumnCheckOperator(
         task_id ='flight_column_checks',
         table=SNOWFLAKE_TABLE,
         column_mapping={"token": {"null_check": {"equal_to": 0}}}
     )
-
-    fetch_data_task >> upload_data_task >> transform_data_task >> upload_transformed_data_task
+        
+    begin = EmptyOperator(task_id="begin")
+    end = EmptyOperator(task_id="end")
+        
+    chain(
+        begin,
+        fetch_data_task,
+        upload_data_task,
+        transform_data_task,
+        upload_transformed_data_task,
+        quality_check_group_flight,
+        end
+    )
