@@ -1,4 +1,4 @@
-import pandas as pd
+import polars as pl
 import json
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
@@ -16,9 +16,42 @@ def transform_hotel_data(**kwargs):
 
         hotels = data.get('data', {})
 
-        df = pd.DataFrame()
+        hotel_data = []
+
+        for hotel in hotels:
+            prop = hotel['property']
+
+            name = prop['name']
+            hotel_id = hotel['hotel_id']
+            latitude = prop['latitude']
+            longitude = prop['longitude']
+            price = prop['priceBreakdown']['grossPrice']['value']
+
+            reviewCount = prop['reviewCount']
+            reviewScore = prop['reviewScore']
+            reviewScoreWord = prop['reviewScoreWord']
+
+            hotel_data.append((name, hotel_id, price, latitude, longitude, reviewCount, reviewScore, reviewScoreWord))
+
+        df = pl.DataFrame(
+            data=hotel_data,
+            schema=['name', 'hotel_id', 'price', 'latitude', 'longitude', 'reviewCount', 'reviewScore', 'reviewScoreWord'],
+            orient='row'
+        )
+
+        # Handle missing values
+        df = df.with_columns(
+            pl.col('reviewCount').fill_null(strategy='zero').alias('reviewCount'),
+            pl.col('reviewScore').fill_null(strategy='zero').alias('reviewScore')
+        )
+
+        # Add column for weighted score
+        df = df.with_columns(
+            ((pl.col('reviewScore') * pl.col('reviewCount')) / (pl.col('reviewCount') + 1)).alias('weightedScore')
+        )
+
         temp_file = '/tmp/transformed_hotel_data.csv'
-        df.to_csv(temp_file, index=False)
+        df.write_csv(temp_file)
 
         return temp_file
 
