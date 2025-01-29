@@ -1,4 +1,5 @@
 import polars as pl
+from datetime import datetime, timedelta
 import json
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
@@ -6,6 +7,10 @@ from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 S3_CONN_ID = 'aws_default'
 S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
 BUCKET = 'glacier-national-park'
+
+RUN_DATE = datetime.now().strftime('%Y-%m-%d')
+CHECK_IN_DATE = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')
+CHECK_OUT_DATE = (datetime.now() + timedelta(weeks=2)).strftime('%Y-%m-%d')
 
 def transform_hotel_data(**kwargs):
     try:
@@ -48,6 +53,13 @@ def transform_hotel_data(**kwargs):
         # Add column for weighted score
         df = df.with_columns(
             ((pl.col('reviewScore') * pl.col('reviewCount')) / (pl.col('reviewCount') + 1)).alias('weightedScore')
+        )
+
+        # Add column with run date, check in date, and check out date
+        df = df.with_columns(
+            pl.lit(RUN_DATE).alias('RUN_DATE'),
+            pl.lit(CHECK_IN_DATE).alias('CHECK_IN_DATE'),
+            pl.lit(CHECK_OUT_DATE).alias('CHECK_OUT_DATE')
         )
 
         temp_file = '/tmp/transformed_hotel_data.csv'

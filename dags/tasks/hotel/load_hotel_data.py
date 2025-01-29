@@ -6,10 +6,6 @@ import os
 SNOWFLAKE_CONN_ID = "snowflake_flight"
 SNOWFLAKE_TABLE = 'HOTEL_DATA'
 
-RUN_DATE = datetime.now().strftime('%Y-%m-%d')
-CHECK_IN_DATE = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')
-CHECK_OUT_DATE = (datetime.now() + timedelta(weeks=2)).strftime('%Y-%m-%d')
-
 def load_data_to_snowflake(**kwargs):
     try:
         ti = kwargs['ti']
