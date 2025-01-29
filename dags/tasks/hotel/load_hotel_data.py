@@ -1,6 +1,4 @@
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
-
-from datetime import datetime, timedelta
 import os
 
 SNOWFLAKE_CONN_ID = "snowflake_flight"
