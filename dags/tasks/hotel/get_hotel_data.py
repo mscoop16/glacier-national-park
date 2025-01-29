@@ -3,20 +3,23 @@ from datetime import datetime, timedelta
 from airflow.models import Variable
 import json
 
-# Hotel: The Lodge at Whitefish Lake
-HOTEL_ID = 345614
+# Area: Whitefish, MT
+DESTINATION_ID = 20077564
 
-TEMP_FILE = '/tmp/hotel_room.json'
+TEMP_FILE = '/tmp/best_hotels.json'
 
-API_URL = "https://booking-com15.p.rapidapi.com/api/v1/hotels/getRoomList"
+API_URL = "https://booking-com15.p.rapidapi.com/api/v1/hotels/searchHotels"
 API_KEY = Variable.get('booking-api-key')
 RUN_DATE = datetime.now().strftime('%Y-%m-%d')
 ARRIVAL_DATE = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')
 DEPARTURE_DATE = (datetime.now() + timedelta(weeks=2)).strftime('%Y-%m-%d')
 API_QUERY = {
-    'hotel_id': HOTEL_ID,
+    'dest_id': DESTINATION_ID,
+    'search_type': 'city',
     'arrival_date' : ARRIVAL_DATE,
     'departure_date': DEPARTURE_DATE,
+    'page_number': 1,
+    'sort_by': 'class_descending',
     'adults': 2,
     'room_qty': 1,
     'currency_code' : 'USD'
