@@ -1,10 +1,12 @@
 import polars as pl
 from datetime import datetime, timedelta
+from io import StringIO
 import json
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 
 S3_CONN_ID = 'aws_default'
+S3_TRANSFORMED_KEY_TEMPLATE = "transformed/hotels/{{ ds }}/transformed_hotels.csv"
 S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
 BUCKET = 'glacier-national-park'
 
@@ -19,7 +21,7 @@ def transform_hotel_data(**kwargs):
         raw_data = s3_hook.read_key(key=s3_key, bucket_name=BUCKET)
         data = json.loads(raw_data)
 
-        hotels = data.get('data', {})
+        hotels = data.get('data', {}).get('hotels', [])
 
         hotel_data = []
 
@@ -62,10 +64,21 @@ def transform_hotel_data(**kwargs):
             pl.lit(CHECK_OUT_DATE).alias('CHECK_OUT_DATE')
         )
 
-        temp_file = '/tmp/transformed_hotel_data.csv'
-        df.write_csv(temp_file)
+        csv_buffer = StringIO()
+        df.write_csv(csv_buffer)
+        csv_buffer.seek(0)
 
-        return temp_file
+        transformed_s3_key = S3_TRANSFORMED_KEY_TEMPLATE.replace("{{ ds }}", kwargs['ds'])
+
+        # Upload CSV to S3
+        s3_hook.load_string(
+            string_data=csv_buffer.getvalue(),
+            key=transformed_s3_key,
+            bucket_name=BUCKET,
+            replace=True
+        )
+
+        return f"s3://{BUCKET}/{transformed_s3_key}"
 
     except Exception as e:
         print(f'Error during transformation: {e}')
