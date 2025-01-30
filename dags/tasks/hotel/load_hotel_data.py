@@ -2,7 +2,7 @@ from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 import os
 
 S3_CONN_ID = 'aws_default'
-S3_TRANSFORMED_KEY_TEMPLATE = "transformed/hotels/{{ ds }}/transformed_hotels.csv"
+S3_TRANSFORMED_KEY_TEMPLATE = "{{ ds }}/transformed_hotels.csv"
 S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
 BUCKET = 'glacier-national-park'
 
