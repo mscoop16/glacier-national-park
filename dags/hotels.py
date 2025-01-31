@@ -4,9 +4,9 @@ from airflow.operators.empty import EmptyOperator
 from airflow.operators.python_operator import PythonOperator
 
 from tasks.hotel.get_hotel_data import fetch_hotel_data
-from tasks.hotel.upload_raw_hotel_data import upload_to_S3
+from tasks.hotel.upload_raw_hotel_data import upload_hotel_to_S3
 from tasks.hotel.transform_hotel_data import transform_hotel_data
-from tasks.hotel.load_hotel_data import load_data_to_snowflake
+from tasks.hotel.load_hotel_data import load_hotel_data_to_snowflake
 
 from datetime import datetime
 
@@ -30,7 +30,7 @@ with DAG(
 
     upload_hotel_data_task = PythonOperator(
         task_id='upload_hotel_data_to_S3',
-        python_callable=upload_to_S3,
+        python_callable=upload_hotel_to_S3,
         provide_context=True
     )
 
@@ -42,7 +42,7 @@ with DAG(
 
     upload_transformed_hotel_data_task = PythonOperator(
         task_id='upload_hotel_data_to_snowflake',
-        python_callable=load_data_to_snowflake,
+        python_callable=load_hotel_data_to_snowflake,
         provide_context=True
     )
 

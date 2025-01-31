@@ -8,7 +8,7 @@ S3_CONN_ID = 'aws_default'
 S3_KEY_TEMPLATE = "raw/flights/{{ ds }}/phl_to_mso.json"
 BUCKET = 'glacier-national-park'
 
-def transform_data(**kwargs):
+def transform_flight_data(**kwargs):
     try:
         s3_hook = S3Hook(aws_conn_id=S3_CONN_ID)
         s3_key = S3_KEY_TEMPLATE.replace("{{ ds }}", kwargs['ds'])

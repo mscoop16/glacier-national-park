@@ -11,10 +11,10 @@ SNOWFLAKE_TABLE = 'FLIGHT_DATA'
 RUN_DATE = datetime.now().strftime('%Y-%m-%d')
 FLIGHT_DATE = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')
 
-def load_data_to_snowflake(**kwargs):
+def load_flight_data_to_snowflake(**kwargs):
     try:
         ti = kwargs['ti']
-        temp_file = ti.xcom_pull(task_ids='transform_data')
+        temp_file = ti.xcom_pull(task_ids='transform_flight_data')
 
         if temp_file is None:
             raise ValueError('No file returned from transform_data task')
@@ -43,7 +43,7 @@ def load_data_to_snowflake(**kwargs):
         WHERE NOT EXISTS (
             SELECT 1
             FROM {SNOWFLAKE_TABLE}
-            WHERE token = '{flight_info['token']}'
+            WHERE RUN_DATE = '{RUN_DATE}'
         );
         """
 

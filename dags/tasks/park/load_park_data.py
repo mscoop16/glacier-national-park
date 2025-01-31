@@ -2,27 +2,26 @@ from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 import os
 
 S3_CONN_ID = 'aws_default'
-S3_TRANSFORMED_KEY_TEMPLATE = "hotels/{{ ds }}/transformed_hotels.csv"
-S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
+S3_KEY_TEMPLATE = "raw/park/glac_park_info.json"
+S3_KEY_TEMPLATE_TRANSFORMED = 'park/park_images.csv'
 BUCKET = 'glacier-national-park'
 
 SNOWFLAKE_CONN_ID = "snowflake_flight"
-SNOWFLAKE_TABLE = 'HOTEL_DATA'
+SNOWFLAKE_TABLE = 'PARK_IMAGES'
 
-def load_hotel_data_to_snowflake(**kwargs):
+def load_data_to_snowflake(**kwargs):
     try:
         ti = kwargs['ti']
-        s3_path = ti.xcom_pull(task_ids='transform_hotel_data')
+        s3_path = ti.xcom_pull(task_ids='transform_park_data')
 
         if s3_path is None:
             raise ValueError('No file path returned from transform_hotel_data task')
         
-        transformed_s3_key = S3_TRANSFORMED_KEY_TEMPLATE.replace("{{ ds }}", kwargs['ds'])
 
         sql = f"""
         COPY INTO {SNOWFLAKE_TABLE}
-        FROM @my_s3_stage/{transformed_s3_key}
-        FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1, FIELD_OPTIONALLY_ENCLOSED_BY = '"');
+        FROM @my_s3_stage/{S3_KEY_TEMPLATE_TRANSFORMED}
+        FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1);
         """
 
         snowflake_hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONN_ID)

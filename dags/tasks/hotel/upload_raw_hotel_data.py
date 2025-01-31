@@ -7,7 +7,7 @@ S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
 BUCKET = 'glacier-national-park'
 TEMP_FILE = '/tmp/best_hotels.json'
 
-def upload_to_S3(**kwargs):
+def upload_hotel_to_S3(**kwargs):
     try:
         s3_hook = S3Hook(aws_conn_id=S3_CONN_ID)
         s3_key = S3_KEY_TEMPLATE.replace("{{ ds }}", kwargs['ds'])
