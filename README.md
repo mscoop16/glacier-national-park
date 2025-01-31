@@ -1,13 +1,21 @@
-<h1 align="center">Glacier National Park Data Pipeline</h1>
+<h1 align="center">Glacier National Park Travel Data Pipeline</h1>
+
+<img src="images/glacier-national-park-images-0.jpg" height="200" width="200">
 
 ## Overview
 This repository contains a personal project that I built to enhance my Data Engineering skills. The end goal is to create a robust ETL pipeline from a variety of data sources that culminates in an insightful dashboard.
 
 ## Current Tasks
-As of this moment, I am currently working on adding data quality checks to my pipeline and cleaning up my Airflow DAG architecture.
+As of this moment, I am currently working on adding data quality checks to my pipeline.
 
 ## Tools used
 This project incorporates: Airflow (using Astronomer), AWS S3, Snowflake, and the dashboard is built with PowerBI. SQL, Pandas, and Polars are also all used.
 
-## Future Goals
-Currently, this project tracks information related to the travel and lodging for a trip to Glacier National Park. My next goal is to incorporate information from the National Park Service API about the park itself.
+## Data Sources
+For this project, I used data from the ["Booking COM" API](https://rapidapi.com/DataCrawler/api/booking-com15) and the [National Park Service API](https://www.nps.gov/subjects/developer/index.htm).
+
+## Flight Information
+<img src="images/glacier-national-park-images-1.jpg" height="200" width="200">
+
+## Hotel Information
+<img src="images/glacier-national-park-images-2.jpg" height="200" width="200">
