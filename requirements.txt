@@ -3,3 +3,4 @@ pandas==2.1.2
 polars==1.21.0
 apache-airflow-providers-snowflake==5.8.0
 apache-airflow-providers-common-sql==1.18.0
+soda-core-snowflake
