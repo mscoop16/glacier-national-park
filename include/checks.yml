@@ -1,8 +1,0 @@
-checks for FLIGHT_DATA:
-  - row_count > 1
-  - duplicate_count(RUN_DATE) = 0
-
-checks for PARK_IMAGES:
-  - row_count > 1
-  - invalid_count(url) = 0:
-      valid regex: ^https://

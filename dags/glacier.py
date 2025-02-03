@@ -3,6 +3,7 @@ from airflow.models.baseoperator import chain
 from airflow.operators.empty import EmptyOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator
+from airflow.providers.snowflake.operators.snowflake import SnowflakeCheckOperator
 from airflow.utils.task_group import TaskGroup
 
 from tasks.flights.get_flight_data import fetch_flight_data
@@ -81,17 +82,19 @@ with DAG(
         provide_context=True
     )
 
-    with TaskGroup(
-        group_id='quality_check_group_flight',
-        default_args={
-            'conn_id' : SNOWFLAKE_CONN_ID
-        }
-    ) as quality_check_group_flight:
+    with TaskGroup(group_id='quality_check_group_flight') as quality_check_group_flight:
         flight_column_checks = SQLColumnCheckOperator(
-        task_id ='flight_column_checks',
-        table=SNOWFLAKE_TABLE_FLIGHT,
-        column_mapping={"token": {"null_check": {"equal_to": 0}}}
-    )
+            conn_id=SNOWFLAKE_CONN_ID,
+            task_id ='flight_column_checks',
+            table=SNOWFLAKE_TABLE_FLIGHT,
+            column_mapping={"token": {"null_check": {"equal_to": 0}}}
+        )
+        flight_row_check = SnowflakeCheckOperator(
+            task_id='flight_row_checks',
+            snowflake_conn_id=SNOWFLAKE_CONN_ID,
+            sql='row_quality_flight_table.sql',
+            params={'table_name': SNOWFLAKE_TABLE_FLIGHT}
+        )
         
     begin = EmptyOperator(task_id="begin")
     end = EmptyOperator(task_id="end")
