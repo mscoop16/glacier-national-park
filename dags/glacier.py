@@ -32,7 +32,8 @@ with DAG(
     description = 'A DAG that performs ETL on hotel & flight data for a trip to Glacier National Park',
     default_args=default_args,
     start_date=datetime(2025, 1, 31),
-    catchup=False
+    catchup=False,
+    template_searchpath='/usr/local/airflow/include/sql/'
 ) as dag:
     fetch_flight_data_task = PythonOperator(
         task_id='fetch_flight_data',
@@ -93,7 +94,7 @@ with DAG(
             task_id='flight_row_checks',
             snowflake_conn_id=SNOWFLAKE_CONN_ID,
             sql='row_quality_flight_table.sql',
-            params={'table_name': SNOWFLAKE_TABLE_FLIGHT}
+            params={'table': SNOWFLAKE_TABLE_FLIGHT}
         )
         
     begin = EmptyOperator(task_id="begin")
