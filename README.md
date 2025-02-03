@@ -8,7 +8,7 @@
 This repository contains a personal project that I built to enhance my Data Engineering skills. The end goal is to create a robust ETL pipeline from a variety of data sources that culminates in an insightful dashboard.
 
 ## Current Tasks
-As of this moment, I am currently working on adding data quality checks to my pipeline.
+As of this moment, I am currently working on adding more data quality checks to my pipeline.
 
 ## Tools used
 This project incorporates: Airflow (using Astronomer), AWS S3, Snowflake, and the dashboard is built with PowerBI. SQL, Pandas, and Polars are also all used.
