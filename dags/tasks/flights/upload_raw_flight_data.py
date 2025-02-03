@@ -1,9 +1,9 @@
 import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
-S3_CONN_ID = 'aws_default'
+S3_CONN_ID = os.environ.get('S3_CONN_ID')
 S3_KEY_TEMPLATE = "raw/flights/{{ ds }}/phl_to_mso.json"
-BUCKET = 'glacier-national-park'
+BUCKET = os.environ.get('BUCKET')
 TEMP_FILE = '/tmp/phl_to_mso.json'
 
 def upload_flight_to_S3(**kwargs):

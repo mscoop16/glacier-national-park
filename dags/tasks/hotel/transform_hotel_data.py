@@ -3,12 +3,13 @@ from datetime import datetime, timedelta
 from io import StringIO
 import json
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+import os
 
 
-S3_CONN_ID = 'aws_default'
+S3_CONN_ID = os.environ.get('S3_CONN_ID')
 S3_TRANSFORMED_KEY_TEMPLATE = "transformed/hotels/{{ ds }}/transformed_hotels.csv"
 S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
-BUCKET = 'glacier-national-park'
+BUCKET = os.environ.get('BUCKET')
 
 RUN_DATE = datetime.now().strftime('%Y-%m-%d')
 CHECK_IN_DATE = (datetime.now() + timedelta(weeks=1)).strftime('%Y-%m-%d')

@@ -17,8 +17,9 @@ from tasks.hotel.transform_hotel_data import transform_hotel_data
 from tasks.hotel.load_hotel_data import load_hotel_data_to_snowflake
 
 from datetime import datetime, timedelta
+import os
 
-SNOWFLAKE_CONN_ID = "snowflake_flight"
+SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
 SNOWFLAKE_TABLE_FLIGHT = 'FLIGHT_DATA'
 
 name = 'mscoop'

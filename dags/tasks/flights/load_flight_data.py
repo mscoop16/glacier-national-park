@@ -5,7 +5,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 
-SNOWFLAKE_CONN_ID = "snowflake_flight"
+SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
 SNOWFLAKE_TABLE = 'FLIGHT_DATA'
 
 RUN_DATE = datetime.now().strftime('%Y-%m-%d')

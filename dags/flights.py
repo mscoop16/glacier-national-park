@@ -11,8 +11,9 @@ from tasks.flights.transform_flight_data import transform_flight_data
 from tasks.flights.load_flight_data import load_flight_data_to_snowflake
 
 from datetime import datetime, timedelta
+import os
 
-SNOWFLAKE_CONN_ID = "snowflake_flight"
+SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
 SNOWFLAKE_TABLE = 'FLIGHT_DATA'
 
 name = 'mscoop'

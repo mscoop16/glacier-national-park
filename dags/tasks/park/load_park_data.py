@@ -1,12 +1,12 @@
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
 import os
 
-S3_CONN_ID = 'aws_default'
+S3_CONN_ID = os.environ.get('S3_CONN_ID')
 S3_KEY_TEMPLATE = "raw/park/glac_park_info.json"
 S3_KEY_TEMPLATE_TRANSFORMED = 'park/park_images.csv'
-BUCKET = 'glacier-national-park'
+BUCKET = os.environ.get('BUCKET')
 
-SNOWFLAKE_CONN_ID = "snowflake_flight"
+SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
 SNOWFLAKE_TABLE = 'PARK_IMAGES'
 
 def load_data_to_snowflake(**kwargs):

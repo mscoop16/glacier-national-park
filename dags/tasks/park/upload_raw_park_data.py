@@ -2,9 +2,9 @@ import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
 
 
-S3_CONN_ID = 'aws_default'
+S3_CONN_ID = os.environ.get('S3_CONN_ID')
 S3_KEY_TEMPLATE_PARK = "raw/park/glac_park_info.json"
-BUCKET = 'glacier-national-park'
+BUCKET = os.environ.get('BUCKET')
 PARK_INFO_TEMP_FILE = '/tmp/glac_park_info.json'
 
 def upload_parkdata_to_S3(**kwargs):
