@@ -1,12 +1,13 @@
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
+from airflow.models import Variable
 import os
 
-S3_CONN_ID = os.environ.get('S3_CONN_ID')
+S3_CONN_ID = Variable.get('S3_CONN_ID_GLAC')
 S3_KEY_TEMPLATE = "raw/park/glac_park_info.json"
 S3_KEY_TEMPLATE_TRANSFORMED = 'park/park_images.csv'
-BUCKET = os.environ.get('BUCKET')
+BUCKET = Variable.get('GLACIER_BUCKET')
 
-SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
+SNOWFLAKE_CONN_ID = Variable.get('SNOWFLAKE_CONN_ID_GLAC')
 SNOWFLAKE_TABLE = 'PARK_IMAGES'
 
 def load_data_to_snowflake(**kwargs):

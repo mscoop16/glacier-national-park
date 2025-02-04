@@ -1,10 +1,11 @@
 import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.models import Variable
 
 
-S3_CONN_ID = os.environ.get('S3_CONN_ID')
+S3_CONN_ID = Variable.get('S3_CONN_ID_GLAC')
 S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
-BUCKET = os.environ.get('BUCKET')
+BUCKET = Variable.get('GLACIER_BUCKET')
 TEMP_FILE = '/tmp/best_hotels.json'
 
 def upload_hotel_to_S3(**kwargs):

@@ -2,12 +2,13 @@ import json
 import pandas as pd
 from dateutil import parser
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.models import Variable
 import os
 
 
-S3_CONN_ID = os.environ.get('S3_CONN_ID')
+S3_CONN_ID = Variable.get('S3_CONN_ID_GLAC')
 S3_KEY_TEMPLATE = "raw/flights/{{ ds }}/phl_to_mso.json"
-BUCKET = os.environ.get('BUCKET')
+BUCKET = Variable.get('GLACIER_BUCKET')
 
 def transform_flight_data(**kwargs):
     try:

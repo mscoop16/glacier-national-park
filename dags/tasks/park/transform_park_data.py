@@ -3,12 +3,13 @@ import json
 from io import StringIO
 import os
 from airflow.providers.amazon.aws.hooks.s3 import S3Hook
+from airflow.models import Variable
 
 
-S3_CONN_ID = os.environ.get('S3_CONN_ID')
+S3_CONN_ID = Variable.get('S3_CONN_ID_GLAC')
 S3_KEY_TEMPLATE = "raw/park/glac_park_info.json"
 S3_KEY_TEMPLATE_TRANSFORMED = 'transformed/park/park_images.csv'
-BUCKET = os.environ.get('BUCKET')
+BUCKET = Variable.get('GLACIER_BUCKET')
 
 def transform_park_data(**kwargs):
     try:

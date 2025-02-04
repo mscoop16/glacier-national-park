@@ -4,6 +4,7 @@ from airflow.operators.empty import EmptyOperator
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.models import Variable
 
 from tasks.flights.get_flight_data import fetch_flight_data
 from tasks.flights.upload_raw_flight_data import upload_flight_to_S3
@@ -13,7 +14,7 @@ from tasks.flights.load_flight_data import load_flight_data_to_snowflake
 from datetime import datetime, timedelta
 import os
 
-SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
+SNOWFLAKE_CONN_ID = Variable.get('SNOWFLAKE_CONN_ID_GLAC')
 SNOWFLAKE_TABLE = 'FLIGHT_DATA'
 
 name = 'mscoop'

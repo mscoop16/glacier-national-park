@@ -1,12 +1,15 @@
 from airflow.providers.snowflake.hooks.snowflake import SnowflakeHook
-import os
+from datetime import datetime
+from airflow.models import Variable
 
-S3_CONN_ID = os.environ.get('S3_CONN_ID')
+S3_CONN_ID = Variable.get('S3_CONN_ID_GLAC')
 S3_TRANSFORMED_KEY_TEMPLATE = "hotels/{{ ds }}/transformed_hotels.csv"
 S3_KEY_TEMPLATE = "raw/hotels/{{ ds }}/best_hotels.json"
-BUCKET = os.environ.get('BUCKET')
+BUCKET = Variable.get('GLACIER_BUCKET')
 
-SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
+RUN_DATE = datetime.now().strftime('%Y-%m-%d')
+
+SNOWFLAKE_CONN_ID = Variable.get('SNOWFLAKE_CONN_ID_GLAC')
 SNOWFLAKE_TABLE = 'HOTEL_DATA'
 
 def load_hotel_data_to_snowflake(**kwargs):
@@ -20,10 +23,21 @@ def load_hotel_data_to_snowflake(**kwargs):
         transformed_s3_key = S3_TRANSFORMED_KEY_TEMPLATE.replace("{{ ds }}", kwargs['ds'])
 
         sql = f"""
-        COPY INTO {SNOWFLAKE_TABLE}
-        FROM @my_s3_stage/{transformed_s3_key}
-        FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1, FIELD_OPTIONALLY_ENCLOSED_BY = '"');
+            DECLARE data_count INTEGER;
+
+            BEGIN
+                LET data_count = (SELECT COUNT(*) FROM {SNOWFLAKE_TABLE} WHERE RUN_DATE = '{RUN_DATE}');
+
+                IF data_count > 0 THEN
+                    COPY INTO {SNOWFLAKE_TABLE}
+                    FROM @my_s3_stage/{transformed_s3_key}
+                    FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1, FIELD_OPTIONALLY_ENCLOSED_BY = '"');
+                ELSE
+                    RETURN 'Data already exists for this date.';
+                END IF;
+            END;
         """
+
 
         snowflake_hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONN_ID)
         snowflake_hook.run(sql)

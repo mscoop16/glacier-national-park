@@ -5,6 +5,7 @@ from airflow.operators.python_operator import PythonOperator
 from airflow.providers.common.sql.operators.sql import SQLColumnCheckOperator
 from airflow.providers.snowflake.operators.snowflake import SnowflakeCheckOperator
 from airflow.utils.task_group import TaskGroup
+from airflow.models import Variable
 
 from tasks.flights.get_flight_data import fetch_flight_data
 from tasks.flights.upload_raw_flight_data import upload_flight_to_S3
@@ -19,8 +20,9 @@ from tasks.hotel.load_hotel_data import load_hotel_data_to_snowflake
 from datetime import datetime, timedelta
 import os
 
-SNOWFLAKE_CONN_ID = os.environ.get('SNOWFLAKE_CONN_ID')
+SNOWFLAKE_CONN_ID = Variable.get('SNOWFLAKE_CONN_ID_GLAC')
 SNOWFLAKE_TABLE_FLIGHT = 'FLIGHT_DATA'
+SNOWFLAKE_TABLE_HOTEL = 'HOTEL_DATA'
 
 name = 'mscoop'
 default_args = {
@@ -97,6 +99,14 @@ with DAG(
             sql='row_quality_flight_table.sql',
             params={'table': SNOWFLAKE_TABLE_FLIGHT}
         )
+    
+    with TaskGroup(group_id='quality_check_group_hotel') as quality_check_group_hotel:
+        hotel_row_check = SnowflakeCheckOperator(
+            task_id='hotel_row_checks',
+            snowflake_conn_id=SNOWFLAKE_CONN_ID,
+            sql='row_quality_hotel_table.sql',
+            params={'table': SNOWFLAKE_TABLE_HOTEL}
+        )
         
     begin = EmptyOperator(task_id="begin")
     end = EmptyOperator(task_id="end")
@@ -107,6 +117,6 @@ with DAG(
         [upload_flight_data_task, upload_hotel_data_task],
         [transform_flight_data_task, transform_hotel_data_task],
         [upload_transformed_flight_data_task, upload_transformed_hotel_data_task],
-        quality_check_group_flight,
+        [quality_check_group_flight, quality_check_group_hotel],
         end
     )
