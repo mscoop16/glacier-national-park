@@ -21,26 +21,21 @@ def load_hotel_data_to_snowflake(**kwargs):
             raise ValueError('No file path returned from transform_hotel_data task')
         
         transformed_s3_key = S3_TRANSFORMED_KEY_TEMPLATE.replace("{{ ds }}", kwargs['ds'])
-
-        sql = f"""
-            DECLARE data_count INTEGER;
-
-            BEGIN
-                LET data_count = (SELECT COUNT(*) FROM {SNOWFLAKE_TABLE} WHERE RUN_DATE = '{RUN_DATE}');
-
-                IF data_count > 0 THEN
-                    COPY INTO {SNOWFLAKE_TABLE}
-                    FROM @my_s3_stage/{transformed_s3_key}
-                    FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1, FIELD_OPTIONALLY_ENCLOSED_BY = '"');
-                ELSE
-                    RETURN 'Data already exists for this date.';
-                END IF;
-            END;
-        """
-
-
         snowflake_hook = SnowflakeHook(snowflake_conn_id=SNOWFLAKE_CONN_ID)
-        snowflake_hook.run(sql)
+
+        check_sql = f"SELECT COUNT(*) FROM HOTEL_DATA WHERE RUN_DATE = '{RUN_DATE}'"
+        data_count = snowflake_hook.get_first(check_sql)[0]
+
+        if data_count > 0:
+            print(f"Data already exists for {RUN_DATE}, skipping COPY INTO.")
+            return
+
+        copy_sql = f"""
+        COPY INTO {SNOWFLAKE_TABLE}
+        FROM @my_s3_stage/{transformed_s3_key}
+        FILE_FORMAT = (TYPE = 'CSV', SKIP_HEADER = 1, FIELD_OPTIONALLY_ENCLOSED_BY = '"');
+        """
+        snowflake_hook.run(copy_sql)
 
         print(f"Data successfully loaded into Snowflake table: {SNOWFLAKE_TABLE}")
     except Exception as e:
